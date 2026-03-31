@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASMR Roulette</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0a0a12;
+      --surface: #12121e;
+      --border: rgba(120, 100, 180, 0.25);
+      --accent: #9b7fe8;
+      --accent2: #5ec4b0;
+      --text: #e8e4f0;
+      --muted: rgba(200, 190, 220, 0.45);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Georgia', serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(80, 50, 160, 0.12) 0%, transparent 70%);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 28px;
+      padding: 40px 24px;
+      max-width: 540px;
+      width: 100%;
+      position: relative;
+      z-index: 1;
+    }
+    .screen.active { display: flex; }
+
+    /* ---- WELCOME ---- */
+    .logo {
+      font-size: clamp(2.2rem, 7vw, 3.6rem);
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      line-height: 1.1;
+    }
+    .logo span { color: var(--accent); }
+
+    .tagline {
+      font-size: 1rem;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      line-height: 1.7;
+    }
+
+    .instructions {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      width: 100%;
+    }
+    .instruction-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 0.95rem;
+      text-align: left;
+    }
+    .instruction-item .icon {
+      font-size: 1.6rem;
+      flex-shrink: 0;
+      width: 36px;
+      text-align: center;
+    }
+
+    /* ---- BUTTONS ---- */
+    .btn {
+      background: linear-gradient(135deg, var(--accent), #7460c0);
+      border: none;
+      border-radius: 50px;
+      color: #fff;
+      font-family: 'Georgia', serif;
+      font-size: 1.1rem;
+      letter-spacing: 0.1em;
+      padding: 16px 48px;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+      box-shadow: 0 4px 30px rgba(120, 80, 220, 0.35);
+    }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 40px rgba(120, 80, 220, 0.5); }
+    .btn:active { transform: translateY(0px); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    .btn.secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      box-shadow: none;
+      font-size: 0.9rem;
+      padding: 12px 32px;
+    }
+    .btn.secondary:hover { border-color: var(--accent); color: var(--accent); box-shadow: none; }
+
+    /* ---- PLAY SCREEN ---- */
+    .mystery-card {
+      width: 220px; height: 220px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border);
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 5rem;
+      box-shadow: 0 0 60px rgba(90, 60, 180, 0.2);
+      position: relative;
+      transition: box-shadow 0.5s;
+    }
+    .mystery-card.playing {
+      box-shadow: 0 0 80px rgba(100, 70, 220, 0.4);
+      animation: breathe 3s ease-in-out infinite;
+    }
+    .mystery-card.scary-playing {
+      box-shadow: 0 0 80px rgba(220, 60, 60, 0.5);
+      animation: shake 0.1s ease-in-out infinite;
+    }
+    @keyframes breathe {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.03); }
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-3px) rotate(-1deg); }
+      75% { transform: translateX(3px) rotate(1deg); }
+    }
+    @keyframes spinIn {
+      from { transform: rotate(-180deg) scale(0.5); opacity: 0; }
+      to   { transform: rotate(0deg) scale(1); opacity: 1; }
+    }
+    .mystery-card.spin-in { animation: spinIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+    /* Reveal section — hidden until auto-reveal */
+    .reveal-info {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.8s ease, transform 0.8s ease;
+      pointer-events: none;
+      min-height: 70px;
+    }
+    .reveal-info.visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .sound-name {
+      font-size: 1.5rem;
+      letter-spacing: 0.05em;
+    }
+    .sound-desc {
+      font-size: 0.88rem;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+
+    .result-tag {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      padding: 4px 14px;
+      border-radius: 20px;
+    }
+    .result-tag.asmr  { background: rgba(94, 196, 176, 0.15); color: var(--accent2); border: 1px solid rgba(94, 196, 176, 0.3); }
+    .result-tag.scary { background: rgba(232, 92, 92, 0.15);  color: #e85c5c;        border: 1px solid rgba(232, 92, 92, 0.3); }
+
+    /* Countdown ring */
+    .countdown-wrap {
+      position: relative;
+      width: 48px; height: 48px;
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+    .countdown-wrap.visible { opacity: 1; }
+    .countdown-ring {
+      transform: rotate(-90deg);
+    }
+    .countdown-ring circle {
+      fill: none;
+      stroke: var(--border);
+      stroke-width: 3;
+    }
+    .countdown-ring .progress {
+      stroke: var(--accent);
+      stroke-dasharray: 126;
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset 0.1s linear, stroke 0.3s;
+    }
+    .countdown-number {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      color: var(--muted);
+      font-family: 'Courier New', monospace;
+    }
+
+    .btn-row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+
+    /* Scary flash */
+    .scary-flash {
+      position: fixed; inset: 0;
+      background: #cc0000;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 100;
+    }
+    .scary-flash.go { animation: flash 0.6s ease-out forwards; }
+    @keyframes flash {
+      0%   { opacity: 0.7; }
+      100% { opacity: 0; }
+    }
+
+    /* Credit */
+    .credit {
+      position: fixed; bottom: 18px; left: 0; right: 0;
+      text-align: center;
+      font-size: 0.72rem;
+      color: rgba(180, 170, 200, 0.3);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      z-index: 10;
+    }
+    .credit a { color: rgba(180, 170, 200, 0.5); text-decoration: none; }
+    .credit a:hover { color: var(--accent); }
+    .credit-btn {
+      background: none; border: none; cursor: pointer;
+      color: rgba(180, 170, 200, 0.5);
+      font-family: inherit; font-size: inherit; letter-spacing: inherit; text-transform: inherit;
+      padding: 0;
+    }
+    .credit-btn:hover { color: var(--accent); }
+
+    /* Credits modal */
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.25s;
+    }
+    .modal-backdrop.open { opacity: 1; pointer-events: auto; }
+
+    .modal {
+      background: #14141f;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      width: min(540px, 92vw);
+      max-height: 80vh;
+      display: flex; flex-direction: column;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+      transform: translateY(12px);
+      transition: transform 0.25s;
+    }
+    .modal-backdrop.open .modal { transform: translateY(0); }
+
+    .modal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .modal-header h2 { font-size: 1rem; font-weight: 400; letter-spacing: 0.08em; color: var(--text); }
+    .modal-close {
+      background: none; border: none; cursor: pointer;
+      color: var(--muted); font-size: 1.3rem; line-height: 1; padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .modal-close:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+
+    .modal-body {
+      overflow-y: auto; padding: 8px 12px 16px;
+      scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+    }
+
+    .modal-section-title {
+      font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.18em;
+      color: var(--muted); padding: 12px 12px 6px;
+    }
+
+    .credit-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 9px 12px; border-radius: 8px;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+    .credit-item:hover { background: rgba(255,255,255,0.04); }
+    .credit-emoji { font-size: 1.4rem; width: 32px; text-align: center; flex-shrink: 0; }
+    .credit-info { flex: 1; min-width: 0; }
+    .credit-name { font-size: 0.88rem; color: var(--text); }
+    .credit-user { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+    .credit-arrow { color: var(--muted); font-size: 0.8rem; flex-shrink: 0; }
+    .credit-item:hover .credit-arrow { color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="scary-flash" id="scaryFlash"></div>
+
+<!-- WELCOME -->
+<div class="screen active" id="screenWelcome">
+  <div class="logo">ASMR<br><span>Roulette</span></div>
+  <p class="tagline">Spin the wheel. Enjoy the tingles.<br>Or… don't.</p>
+  <div class="instructions">
+    <div class="instruction-item">
+      <div class="icon">🎧</div>
+      <div>Put on <strong>headphones</strong> for the best experience</div>
+    </div>
+    <div class="instruction-item">
+      <div class="icon">🔉</div>
+      <div>Set your volume to a <strong>comfortable but not too low</strong> level — trust us</div>
+    </div>
+    <div class="instruction-item">
+      <div class="icon">🎲</div>
+      <div>Every spin plays a <strong>mystery sound</strong> — most are relaxing… most</div>
+    </div>
+  </div>
+  <button class="btn" onclick="goPlay()">I'm ready, spin it</button>
+</div>
+
+<!-- PLAY -->
+<div class="screen" id="screenPlay">
+  <div class="mystery-card" id="mysteryCard">🎲</div>
+
+  <!-- Countdown ring (visible while waiting to reveal) -->
+  <div class="countdown-wrap" id="countdownWrap">
+    <svg class="countdown-ring" width="48" height="48" viewBox="0 0 48 48">
+      <circle cx="24" cy="24" r="20"/>
+      <circle class="progress" id="progressCircle" cx="24" cy="24" r="20"/>
+    </svg>
+    <div class="countdown-number" id="countdownNumber">10</div>
+  </div>
+
+  <!-- Hidden until reveal -->
+  <div class="reveal-info" id="revealInfo">
+    <div class="result-tag" id="resultTag"></div>
+    <div class="sound-name" id="soundName"></div>
+    <div class="sound-desc" id="soundDesc"></div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn" id="spinBtn" onclick="spin()">Spin again</button>
+    <button class="btn secondary" onclick="stopSound()">Stop</button>
+  </div>
+</div>
+
+<div class="credit">
+  a fun project by
+  <a href="https://marijnpool.nl" target="_blank">Marijn Pool</a>
+  &nbsp;·&nbsp;
+  <a href="https://toot.re/@IcyPalm" target="_blank">Mastodon</a>
+  &nbsp;·&nbsp;
+  <a href="https://bsky.app/profile/icypalm.bsky.social" target="_blank">Bluesky</a>
+  &nbsp;·&nbsp;
+  <button class="credit-btn" onclick="openCredits()">sound credits</button>
+</div>
+
+<!-- Credits modal -->
+<div class="modal-backdrop" id="creditsBackdrop" onclick="closeCreditsOnBackdrop(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Sound Credits</h2>
+      <button class="modal-close" onclick="closeCredits()">✕</button>
+    </div>
+    <div class="modal-body" id="creditsBody">
+      <div style="padding:24px;text-align:center;color:var(--muted);font-size:0.85rem;">Loading…</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── Sound manifest ───────────────────────────────────────────────────────────
+// Drop audio files into sounds/asmr/ and sounds/scary/
+// Supported formats: mp3, ogg, wav
+const SOUNDS = [
+  // ASMR (24 sounds)
+  { file: 'sounds/asmr/rain.ogg',            emoji: '🌧️', name: 'Rain & Wind Chimes',  desc: 'Soft rain with distant chimes',        scary: false },
+  { file: 'sounds/asmr/ocean.ogg',           emoji: '🌊', name: 'Ocean Waves',         desc: 'Rhythmic waves on shore',              scary: false },
+  { file: 'sounds/asmr/fireplace.ogg',       emoji: '🔥', name: 'Crackling Fire',      desc: 'Warm pops from a fireplace',           scary: false },
+  { file: 'sounds/asmr/stream.ogg',          emoji: '🏞️', name: 'Forest Stream',       desc: 'Babbling brook through the woods',     scary: false },
+  { file: 'sounds/asmr/typewriter.ogg',      emoji: '🖊️', name: 'Typewriter',          desc: 'Clackety-clack of the old days',       scary: false },
+  { file: 'sounds/asmr/singing-bowl.ogg',    emoji: '🎵', name: 'Singing Bowl',        desc: 'Tibetan bowl resonance',               scary: false },
+  { file: 'sounds/asmr/purring.ogg',         emoji: '🐱', name: 'Cat Purring',         desc: 'Deep, cozy rumbling purr',             scary: false },
+  { file: 'sounds/asmr/scissors.ogg',        emoji: '✂️', name: 'Scissors',            desc: 'Snip snip snip',                       scary: false },
+  { file: 'sounds/asmr/hair-brush.ogg',      emoji: '💆', name: 'Hair Brushing',       desc: 'Long slow strokes through hair',       scary: false },
+  { file: 'sounds/asmr/crinkling.ogg',       emoji: '🛍️', name: 'Crinkling Plastic',   desc: 'Slow crinkle of a plastic bag',        scary: false },
+  { file: 'sounds/asmr/book-flipping.ogg',   emoji: '📚', name: 'Book Flipping',       desc: 'Fanning through hundreds of pages',    scary: false },
+  { file: 'sounds/asmr/slime.ogg',           emoji: '🟢', name: 'Slime Squishing',     desc: 'Wet, gooey squishes',                  scary: false },
+  { file: 'sounds/asmr/gravel.ogg',          emoji: '🪨', name: 'Crunching Gravel',    desc: 'Footsteps on a gravel path',           scary: false },
+  { file: 'sounds/asmr/knitting.ogg',        emoji: '🧶', name: 'Knitting',            desc: 'Rhythmic click of needles',            scary: false },
+  { file: 'sounds/asmr/snow-crunching.ogg',  emoji: '❄️', name: 'Snow Crunching',      desc: 'Footsteps in fresh powder',            scary: false },
+  { file: 'sounds/asmr/fish-tank.ogg',       emoji: '🐟', name: 'Fish Tank',           desc: 'Gentle aquarium bubbling',             scary: false },
+  { file: 'sounds/asmr/crickets.ogg',        emoji: '🌙', name: 'Night Crickets',      desc: 'Summer crickets in the dark',          scary: false },
+  { file: 'sounds/asmr/leaves.ogg',          emoji: '🍃', name: 'Rustling Leaves',     desc: 'Walking through autumn leaves',        scary: false },
+  { file: 'sounds/asmr/water-drops.ogg',     emoji: '💧', name: 'Dripping Water',      desc: 'Water drops in a cave',                scary: false },
+  { file: 'sounds/asmr/water-pouring.ogg',   emoji: '🚿', name: 'Water Pouring',       desc: 'A gentle pour into a bowl',            scary: false },
+  { file: 'sounds/asmr/wind.ogg',            emoji: '🌬️', name: 'Soft Wind',           desc: 'Breeze through the trees',             scary: false },
+  { file: 'sounds/asmr/bubble-wrap.ogg',     emoji: '🫧', name: 'Bubble Wrap',         desc: 'Deeply satisfying pops',               scary: false },
+  { file: 'sounds/asmr/pencil.ogg',          emoji: '✏️', name: 'Pencil Writing',      desc: 'Soft scratching on paper',             scary: false },
+  // Scary (5 sounds — weighted separately in code)
+  { file: 'sounds/scary/airhorn.ogg',        emoji: '📯', name: 'AIR HORN',            desc: 'You actually sat through the whole thing. Incredible. Seek help.',          scary: true  },
+  { file: 'sounds/scary/alarm.ogg',          emoji: '🚨', name: 'Evacuation Alarm',    desc: 'Hope your headphones were loud. Hope your neighbours heard. Hope you\'re okay.', scary: true  },
+  { file: 'sounds/scary/jumpscare.ogg',      emoji: '👻', name: 'Jump Scare',          desc: 'Did you flinch? You flinched. Everyone saw.',                               scary: true  },
+  { file: 'sounds/scary/foghorn.ogg',        emoji: '🚢', name: 'FOG HORN',            desc: 'A ship. You were warned about the volume. You did this to yourself.',        scary: true  },
+  { file: 'sounds/scary/scream.ogg',         emoji: '😱', name: 'The Scream',          desc: 'That\'s the sound your ears just made internally. You\'re welcome.',         scary: true  },
+];
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let currentAudio   = null;
+let countdownTimer = null;
+let revealTimeout  = null;
+const REVEAL_DELAY = 5; // seconds
+
+function stopSound() {
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+    currentAudio = null;
+  }
+  clearCountdown();
+}
+
+function clearCountdown() {
+  clearInterval(countdownTimer);
+  clearTimeout(revealTimeout);
+  countdownTimer = revealTimeout = null;
+  document.getElementById('countdownWrap').classList.remove('visible');
+}
+
+function triggerScaryFlash() {
+  const el = document.getElementById('scaryFlash');
+  el.classList.remove('go');
+  void el.offsetWidth;
+  el.classList.add('go');
+}
+
+// ─── Countdown ring ───────────────────────────────────────────────────────────
+function startCountdown(duration) {
+  const wrap    = document.getElementById('countdownWrap');
+  const circle  = document.getElementById('progressCircle');
+  const numEl   = document.getElementById('countdownNumber');
+  const total   = 126; // stroke-dasharray circumference
+  wrap.classList.add('visible');
+
+  let elapsed = 0;
+  const tick  = 100; // ms
+  countdownTimer = setInterval(() => {
+    elapsed += tick / 1000;
+    const progress = Math.min(elapsed / duration, 1);
+    circle.style.strokeDashoffset = total * progress;
+    numEl.textContent = Math.max(0, Math.ceil(duration - elapsed));
+    if (elapsed >= duration) clearInterval(countdownTimer);
+  }, tick);
+}
+
+// ─── Reveal ───────────────────────────────────────────────────────────────────
+function reveal(sound) {
+  clearCountdown();
+  const card = document.getElementById('mysteryCard');
+  const info = document.getElementById('revealInfo');
+  const tag  = document.getElementById('resultTag');
+
+  // Show the actual emoji now
+  card.textContent = sound.emoji;
+
+  document.getElementById('soundName').textContent = sound.name;
+  document.getElementById('soundDesc').textContent = sound.desc;
+  tag.textContent = sound.scary ? '⚠ not asmr' : '✦ asmr';
+  tag.className   = 'result-tag ' + (sound.scary ? 'scary' : 'asmr');
+  info.classList.add('visible');
+
+  // Flash only fires at reveal for scary sounds
+  if (sound.scary) triggerScaryFlash();
+}
+
+// ─── Spin ─────────────────────────────────────────────────────────────────────
+function goPlay() {
+  document.getElementById('screenWelcome').classList.remove('active');
+  document.getElementById('screenPlay').classList.add('active');
+  spin();
+}
+
+function spin() {
+  stopSound();
+
+  // Reset reveal
+  const info = document.getElementById('revealInfo');
+  info.classList.remove('visible');
+
+  // Pick: ~10% chance scary
+  const scary   = Math.random() < 0.1;
+  const pool    = SOUNDS.filter(s => s.scary === scary);
+  const sound   = pool[Math.floor(Math.random() * pool.length)];
+
+  const card    = document.getElementById('mysteryCard');
+  const spinBtn = document.getElementById('spinBtn');
+
+  spinBtn.disabled = true;
+  card.className   = 'mystery-card';
+  card.textContent = '🎲';
+
+  // Spin-in animation, then show emoji
+  setTimeout(() => {
+    card.className   = 'mystery-card spin-in playing';
+    card.textContent = '❓';
+
+    // Play audio
+    const audio  = new Audio(sound.file);
+    audio.volume = 1.0;
+    currentAudio = audio;
+    audio.play().catch(() => {/* autoplay blocked, still show UI */});
+
+    // Start countdown to reveal
+    startCountdown(REVEAL_DELAY);
+    revealTimeout = setTimeout(() => reveal(sound), REVEAL_DELAY * 1000);
+
+    // Also reveal when sound ends naturally
+    audio.addEventListener('ended', () => reveal(sound), { once: true });
+
+    spinBtn.disabled = false;
+  }, 300);
+}
+
+// ─── Credits modal ────────────────────────────────────────────────────────────
+const soundMeta = {};
+SOUNDS.forEach(s => {
+  const filename = s.file.split('/').pop();
+  soundMeta[filename] = { emoji: s.emoji, name: s.name, scary: s.scary };
+});
+
+const ATTRIBUTION = {
+  "stream.ogg":        { "user": "26327991",              "url": "https://pixabay.com/sound-effects/water-stream-108384/"                          },
+  "singing-bowl.ogg":  { "user": "hollandm",              "url": "https://freesound.org/people/hollandm/sounds/573805/", "source": "freesound.org" },
+  "purring.ogg":       { "user": "TSP-Talk",              "url": "https://freesound.org/people/TSP-Talk/sounds/846064/", "source": "freesound.org" },
+  "hair-brush.ogg":    { "user": "babydolldaydreams",     "url": "https://pixabay.com/sound-effects/binaural-brushing-asmr-335553/"                },
+  "crinkling.ogg":     { "user": "freesound_community",   "url": "https://pixabay.com/sound-effects/breadbag-crinkling-35591/"                     },
+  "scissors.ogg":      { "user": "freesound_community",   "url": "https://pixabay.com/sound-effects/cutting-paper-17086/"                          },
+  "book-flipping.ogg": { "user": "freesound_community",   "url": "https://pixabay.com/sound-effects/flipping-book-pages-2-53725/"                  },
+  "gravel.ogg":        { "user": "freesound_community",   "url": "https://pixabay.com/sound-effects/footsteps-gravel-st-77200/"                    },
+  "fish-tank.ogg":     { "user": "freesound_community",   "url": "https://pixabay.com/sound-effects/film-special-effects-indoor-nice-fish-tank-ambiance-75601/" },
+  "knitting.ogg":      { "user": "freesound_community",   "url": "https://pixabay.com/sound-effects/knitting-with-metal-needles-23843/"            },
+  "snow-crunching.ogg":{ "user": "freesound_community",   "url": "https://pixabay.com/sound-effects/snow-73873/"                                   },
+  "typewriter.ogg":    { "user": "freesound_community",   "url": "https://pixabay.com/sound-effects/typewriter-machine-64191/"                     },
+  "fireplace.ogg":     { "user": "king_of_the_christmas", "url": "https://pixabay.com/sound-effects/fireplace-loop-original-noise-178209/"         },
+  "slime.ogg":         { "user": "tara0306",              "url": "https://pixabay.com/sound-effects/slime-asmr-377358/"                            },
+  "airhorn.ogg":       { "user": "dragon-studio",         "url": "https://pixabay.com/sound-effects/air-horn-sound-effect-372453/"                 },
+  "jumpscare.ogg":     { "user": "freesound_community",   "url": "https://pixabay.com/sound-effects/fuzzy-jumpscare-80560/"                        },
+  "foghorn.ogg":       { "user": "freesound_community",   "url": "https://pixabay.com/sound-effects/loud-fog-horn-47514/"                          },
+  "alarm.ogg":         { "user": "jeremayjimenez",        "url": "https://pixabay.com/sound-effects/saudi-arabia-eas-alarm-2024-my-own-alarm-422164/" },
+  "ocean.ogg":         { "user": "dragon-studio",         "url": "https://pixabay.com/sound-effects/soothing-ocean-waves-372489/"                  },
+  "crickets.ogg":      { "user": "freesound_community",   "url": "https://pixabay.com/sound-effects/crickets-chirping-with-other-bugs-27217/"      },
+  "leaves.ogg":        { "user": "freesound_community",   "url": "https://pixabay.com/sound-effects/walking-on-dry-leaves-67670/"                  },
+  "water-drops.ogg":   { "user": "freesound_community",   "url": "https://pixabay.com/sound-effects/water-drops-26638/"                           },
+  "water-pouring.ogg": { "user": "freesound_community",   "url": "https://pixabay.com/sound-effects/water-pouring-80316/"                         },
+  "rain.ogg":          { "user": "lofivision",            "url": "https://pixabay.com/sound-effects/rain-and-wind-chimes-314370/"                  },
+  "wind.ogg":          { "user": "soundreality",          "url": "https://pixabay.com/sound-effects/wind-blowing-457954/"                          },
+  "bubble-wrap.ogg":   { "user": "spinopel",              "url": "https://pixabay.com/sound-effects/bubble-wrap-411646/"                           },
+  "pencil.ogg":        { "user": "u_xg7ssi08yr",          "url": "https://pixabay.com/sound-effects/writing-with-pencil-371358/"                   },
+  "scream.ogg":        { "user": "dragon-studio",         "url": "https://pixabay.com/sound-effects/scary-scream-401725/"                          },
+};
+
+let creditsLoaded = false;
+
+function openCredits() {
+  document.getElementById('creditsBackdrop').classList.add('open');
+  if (creditsLoaded) return;
+  renderCredits();
+  creditsLoaded = true;
+}
+
+function renderCredits() {
+  const asmr  = [];
+  const scary = [];
+
+  Object.entries(ATTRIBUTION).forEach(([file, info]) => {
+    const meta  = soundMeta[file] || {};
+    const entry = { file, ...info, ...meta };
+    (meta.scary ? scary : asmr).push(entry);
+  });
+
+  const section = (title, entries) => `
+    <div class="modal-section-title">${title}</div>
+    ${entries.map(e => `
+      <a class="credit-item" href="${e.url}" target="_blank" rel="noopener">
+        <div class="credit-emoji">${e.emoji || '🔊'}</div>
+        <div class="credit-info">
+          <div class="credit-name">${e.name || e.file.replace('.ogg','')}</div>
+          <div class="credit-user">by ${e.user} · ${e.source || 'pixabay.com'}</div>
+        </div>
+        <div class="credit-arrow">↗</div>
+      </a>`).join('')}`;
+
+  document.getElementById('creditsBody').innerHTML =
+    section('ASMR Sounds', asmr) + section('Scary Sounds', scary);
+}
+
+function closeCredits() {
+  document.getElementById('creditsBackdrop').classList.remove('open');
+}
+
+function closeCreditsOnBackdrop(e) {
+  if (e.target === document.getElementById('creditsBackdrop')) closeCredits();
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCredits(); });
+</script>
+</body>
+</html>
