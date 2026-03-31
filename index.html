@@ -4,39 +4,71 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ASMR Roulette</title>
+  <link rel="icon" href="/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Oleo+Script&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --bg: #0a0a12;
-      --surface: #12121e;
-      --border: rgba(120, 100, 180, 0.25);
-      --accent: #9b7fe8;
-      --accent2: #5ec4b0;
-      --text: #e8e4f0;
-      --muted: rgba(200, 190, 220, 0.45);
+      --bg: #000000;
+      --surface: rgba(0,0,0,0.45);
+      --border: rgba(255,255,255,0.25);
+      --border-strong: rgba(255,255,255,0.75);
+      --red: #C02C38;
+      --blue: #428BCA;
+      --text: #ffffff;
+      --muted: rgba(255,255,255,0.55);
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 110%;
+      font-family: 'Montserrat', sans-serif;
     }
 
     body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Georgia', serif;
       min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Split red/blue background */
+    .bg-split {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      display: flex;
+      pointer-events: none;
+    }
+    .bg-split-blue {
+      width: 50%;
+      height: 100%;
+      background: var(--blue);
+    }
+    .bg-split-red {
+      width: 50%;
+      height: 100%;
+      background: var(--red);
+    }
+
+    /* Content overlay */
+    .content-wrap {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 60rem;
+      min-height: 100vh;
+      margin: 0 auto;
+      background: rgba(0,0,0,0.2);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      overflow: hidden;
-    }
-
-    body::before {
-      content: '';
-      position: fixed;
-      width: 600px; height: 600px;
-      background: radial-gradient(circle, rgba(80, 50, 160, 0.12) 0%, transparent 70%);
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      pointer-events: none;
+      padding: 2rem;
     }
 
     .screen {
@@ -48,31 +80,31 @@
       padding: 40px 24px;
       max-width: 540px;
       width: 100%;
-      position: relative;
-      z-index: 1;
     }
     .screen.active { display: flex; }
 
     /* ---- WELCOME ---- */
     .logo {
-      font-size: clamp(2.2rem, 7vw, 3.6rem);
+      font-family: 'Oleo Script', cursive;
+      font-size: clamp(2.4rem, 8vw, 4.2rem);
       font-weight: 400;
-      letter-spacing: 0.04em;
       line-height: 1.1;
+      transform: rotate(-5deg);
+      text-shadow: 0 0.075em 0.05em rgba(0, 0, 0, 0.25);
     }
-    .logo span { color: var(--accent); }
+    .logo .red { color: var(--red); }
+    .logo .blue { color: var(--blue); }
 
     .tagline {
-      font-size: 1rem;
+      font-size: 0.9rem;
       color: var(--muted);
-      letter-spacing: 0.06em;
       line-height: 1.7;
     }
 
     .instructions {
       background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
+      border: 1px dashed var(--border);
+      border-radius: 4px;
       padding: 24px 28px;
       display: flex;
       flex-direction: column;
@@ -83,7 +115,7 @@
       display: flex;
       align-items: center;
       gap: 14px;
-      font-size: 0.95rem;
+      font-size: 0.85rem;
       text-align: left;
     }
     .instruction-item .icon {
@@ -93,21 +125,33 @@
       text-align: center;
     }
 
+    /* ---- LINKS ---- */
+    a {
+      text-decoration: none;
+      color: var(--text);
+      border-bottom: 1px dotted var(--text);
+      cursor: pointer;
+    }
+    a:hover {
+      border-bottom: 1px solid var(--text);
+    }
+
     /* ---- BUTTONS ---- */
     .btn {
-      background: linear-gradient(135deg, var(--accent), #7460c0);
+      background: var(--red);
       border: none;
-      border-radius: 50px;
+      border-radius: 4px;
       color: #fff;
-      font-family: 'Georgia', serif;
-      font-size: 1.1rem;
-      letter-spacing: 0.1em;
-      padding: 16px 48px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      padding: 14px 44px;
       cursor: pointer;
       transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
-      box-shadow: 0 4px 30px rgba(120, 80, 220, 0.35);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     }
-    .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 40px rgba(120, 80, 220, 0.5); }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 30px rgba(0, 0, 0, 0.5); }
     .btn:active { transform: translateY(0px); }
     .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
@@ -116,31 +160,34 @@
       border: 1px solid var(--border);
       color: var(--muted);
       box-shadow: none;
-      font-size: 0.9rem;
-      padding: 12px 32px;
+      font-size: 0.85rem;
+      font-weight: 400;
+      padding: 10px 28px;
     }
-    .btn.secondary:hover { border-color: var(--accent); color: var(--accent); box-shadow: none; }
+    .btn.secondary:hover { border-color: var(--text); color: var(--text); box-shadow: none; }
 
     /* ---- PLAY SCREEN ---- */
     .mystery-card {
       width: 220px; height: 220px;
       border-radius: 50%;
-      border: 1.5px solid var(--border);
+      border: 2px solid var(--border);
       background: var(--surface);
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 5rem;
-      box-shadow: 0 0 60px rgba(90, 60, 180, 0.2);
+      box-shadow: 0 0 60px rgba(0, 0, 0, 0.3);
       position: relative;
-      transition: box-shadow 0.5s;
+      transition: box-shadow 0.5s, border-color 0.5s;
     }
     .mystery-card.playing {
-      box-shadow: 0 0 80px rgba(100, 70, 220, 0.4);
+      border-color: var(--blue);
+      box-shadow: 0 0 80px rgba(66, 139, 202, 0.4);
       animation: breathe 3s ease-in-out infinite;
     }
     .mystery-card.scary-playing {
-      box-shadow: 0 0 80px rgba(220, 60, 60, 0.5);
+      border-color: var(--red);
+      box-shadow: 0 0 80px rgba(192, 44, 56, 0.5);
       animation: shake 0.1s ease-in-out infinite;
     }
     @keyframes breathe {
@@ -158,7 +205,7 @@
     }
     .mystery-card.spin-in { animation: spinIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
 
-    /* Reveal section — hidden until auto-reveal */
+    /* Reveal section */
     .reveal-info {
       display: flex;
       flex-direction: column;
@@ -177,24 +224,24 @@
     }
 
     .sound-name {
-      font-size: 1.5rem;
-      letter-spacing: 0.05em;
+      font-family: 'Oleo Script', cursive;
+      font-size: 1.6rem;
     }
     .sound-desc {
-      font-size: 0.88rem;
+      font-size: 0.8rem;
       color: var(--muted);
-      letter-spacing: 0.04em;
     }
 
     .result-tag {
-      font-size: 0.72rem;
+      font-size: 0.7rem;
       text-transform: uppercase;
       letter-spacing: 0.15em;
       padding: 4px 14px;
-      border-radius: 20px;
+      border-radius: 3px;
+      font-weight: 700;
     }
-    .result-tag.asmr  { background: rgba(94, 196, 176, 0.15); color: var(--accent2); border: 1px solid rgba(94, 196, 176, 0.3); }
-    .result-tag.scary { background: rgba(232, 92, 92, 0.15);  color: #e85c5c;        border: 1px solid rgba(232, 92, 92, 0.3); }
+    .result-tag.asmr  { background: rgba(66, 139, 202, 0.2); color: var(--blue); border: 1px solid rgba(66, 139, 202, 0.4); }
+    .result-tag.scary { background: rgba(192, 44, 56, 0.2);  color: var(--red);  border: 1px solid rgba(192, 44, 56, 0.4); }
 
     /* Countdown ring */
     .countdown-wrap {
@@ -213,7 +260,7 @@
       stroke-width: 3;
     }
     .countdown-ring .progress {
-      stroke: var(--accent);
+      stroke: var(--blue);
       stroke-dasharray: 126;
       stroke-dashoffset: 0;
       transition: stroke-dashoffset 0.1s linear, stroke 0.3s;
@@ -234,7 +281,7 @@
     /* Scary flash */
     .scary-flash {
       position: fixed; inset: 0;
-      background: #cc0000;
+      background: var(--red);
       opacity: 0;
       pointer-events: none;
       z-index: 100;
@@ -245,30 +292,44 @@
       100% { opacity: 0; }
     }
 
-    /* Credit */
-    .credit {
-      position: fixed; bottom: 18px; left: 0; right: 0;
+    /* ---- FOOTER ---- */
+    footer {
+      width: 100%;
+      margin-top: auto;
+      padding: 1rem 0 1.5rem;
       text-align: center;
-      font-size: 0.72rem;
-      color: rgba(180, 170, 200, 0.3);
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      z-index: 10;
+      border-top: 1px solid var(--border-strong);
+      font-size: 55%;
     }
-    .credit a { color: rgba(180, 170, 200, 0.5); text-decoration: none; }
-    .credit a:hover { color: var(--accent); }
+    footer div {
+      opacity: 0.55;
+    }
+    footer p {
+      margin: 0;
+      padding: 0.3rem 0;
+    }
+    footer a {
+      color: var(--text);
+      border-bottom: 1px dotted var(--text);
+      text-decoration: none;
+    }
+    footer a:hover {
+      border-bottom: 1px solid var(--text);
+    }
     .credit-btn {
       background: none; border: none; cursor: pointer;
-      color: rgba(180, 170, 200, 0.5);
-      font-family: inherit; font-size: inherit; letter-spacing: inherit; text-transform: inherit;
+      color: var(--text);
+      border-bottom: 1px dotted var(--text);
+      font-family: inherit; font-size: inherit;
       padding: 0;
+      opacity: 0.55;
     }
-    .credit-btn:hover { color: var(--accent); }
+    .credit-btn:hover { border-bottom: 1px solid var(--text); }
 
     /* Credits modal */
     .modal-backdrop {
       position: fixed; inset: 0;
-      background: rgba(0,0,0,0.75);
+      background: rgba(0,0,0,0.8);
       backdrop-filter: blur(4px);
       z-index: 200;
       display: flex; align-items: center; justify-content: center;
@@ -278,9 +339,9 @@
     .modal-backdrop.open { opacity: 1; pointer-events: auto; }
 
     .modal {
-      background: #14141f;
+      background: #111111;
       border: 1px solid var(--border);
-      border-radius: 14px;
+      border-radius: 4px;
       width: min(540px, 92vw);
       max-height: 80vh;
       display: flex; flex-direction: column;
@@ -293,16 +354,16 @@
     .modal-header {
       display: flex; align-items: center; justify-content: space-between;
       padding: 20px 24px 16px;
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px dashed var(--border);
       flex-shrink: 0;
     }
-    .modal-header h2 { font-size: 1rem; font-weight: 400; letter-spacing: 0.08em; color: var(--text); }
+    .modal-header h2 { font-size: 0.9rem; font-weight: 700; letter-spacing: 0.05em; color: var(--text); }
     .modal-close {
       background: none; border: none; cursor: pointer;
       color: var(--muted); font-size: 1.3rem; line-height: 1; padding: 2px 6px;
       border-radius: 4px;
     }
-    .modal-close:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+    .modal-close:hover { color: var(--text); background: rgba(255,255,255,0.08); }
 
     .modal-body {
       overflow-y: auto; padding: 8px 12px 16px;
@@ -310,32 +371,52 @@
     }
 
     .modal-section-title {
-      font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.18em;
-      color: var(--muted); padding: 12px 12px 6px;
+      font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.18em;
+      color: var(--muted); padding: 12px 12px 6px; font-weight: 700;
     }
 
     .credit-item {
       display: flex; align-items: center; gap: 12px;
-      padding: 9px 12px; border-radius: 8px;
+      padding: 9px 12px; border-radius: 4px;
       text-decoration: none;
+      border-bottom: none;
       transition: background 0.15s;
     }
-    .credit-item:hover { background: rgba(255,255,255,0.04); }
+    .credit-item:hover { background: rgba(255,255,255,0.06); border-bottom: none; }
     .credit-emoji { font-size: 1.4rem; width: 32px; text-align: center; flex-shrink: 0; }
     .credit-info { flex: 1; min-width: 0; }
-    .credit-name { font-size: 0.88rem; color: var(--text); }
-    .credit-user { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+    .credit-name { font-size: 0.8rem; color: var(--text); }
+    .credit-user { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
     .credit-arrow { color: var(--muted); font-size: 0.8rem; flex-shrink: 0; }
-    .credit-item:hover .credit-arrow { color: var(--accent); }
+    .credit-item:hover .credit-arrow { color: var(--text); }
+
+    /* Video embed */
+    .video-wrap {
+      width: 100%;
+      max-width: 40rem;
+      aspect-ratio: 16 / 9;
+      background: white;
+      padding: 0.4rem;
+      box-shadow: 0 0 2px rgba(0,0,0,.12), 0 2px 4px rgba(0,0,0,.24);
+      box-sizing: border-box;
+    }
+    .video { width: 100%; height: 100%; border: none; }
   </style>
 </head>
 <body>
 
+<div class="bg-split">
+  <div class="bg-split-blue"></div>
+  <div class="bg-split-red"></div>
+</div>
+
 <div class="scary-flash" id="scaryFlash"></div>
+
+<div class="content-wrap">
 
 <!-- WELCOME -->
 <div class="screen active" id="screenWelcome">
-  <div class="logo">ASMR<br><span>Roulette</span></div>
+  <div class="logo"><span class="blue">ASMR</span><br><span class="red">Roulette</span></div>
   <p class="tagline">Spin the wheel. Enjoy the tingles.<br>Or… don't.</p>
   <div class="instructions">
     <div class="instruction-item">
@@ -352,6 +433,13 @@
     </div>
   </div>
   <button class="btn" onclick="goPlay()">I'm ready, spin it</button>
+  <div class="video-wrap">
+    <iframe class="video" src="https://www.youtube-nocookie.com/embed/SborjlpiYtQ?start=873"
+      title="YouTube" frameborder="0"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      allowfullscreen></iframe>
+  </div>
+  <p class="tagline">I saw this video years ago, registered the domain name, and never really did anything with it. Now, with Claude and AI agents, it's kind of easy to make these web toys — so I finally did something with the domain I've had for over 8 years.</p>
 </div>
 
 <!-- PLAY -->
@@ -377,19 +465,22 @@
   <div class="btn-row">
     <button class="btn" id="spinBtn" onclick="spin()">Spin again</button>
     <button class="btn secondary" onclick="stopSound()">Stop</button>
+    <button class="btn secondary" onclick="goHome()">Back to home</button>
   </div>
 </div>
 
-<div class="credit">
-  a fun project by
-  <a href="https://marijnpool.nl" target="_blank">Marijn Pool</a>
-  &nbsp;·&nbsp;
-  <a href="https://toot.re/@IcyPalm" target="_blank">Mastodon</a>
-  &nbsp;·&nbsp;
-  <a href="https://bsky.app/profile/icypalm.bsky.social" target="_blank">Bluesky</a>
-  &nbsp;·&nbsp;
-  <button class="credit-btn" onclick="openCredits()">sound credits</button>
-</div>
+<footer>
+  <div>
+    <p>This website is not operated by Matt or Tom. I am not Matt or Tom. I don't communicate with Matt or Tom. None of this is from them, ok?</p>
+    <p>I am <a href="https://marijnpool.nl" target="_blank">Marijn Pool</a>. I used <a href="https://claude.ai/code" target="_blank">Claude Code</a> to build this fun little thing, sorry if it's broken.</p>
+    <p><a href="https://toot.re/@IcyPalm" target="_blank">Mastodon</a> · <a href="https://bsky.app/profile/icypalm.bsky.social" target="_blank">Bluesky</a></p>
+    <p>Last update <span id="buildDate">__BUILD_DATE__</span></p>
+    <p>Wanna help make this site? Edit it on <a href="https://github.com/IcyPalm/asmrroulette.com" target="_blank">GitHub</a>!</p>
+    <p><button class="credit-btn" onclick="openCredits()">sound credits</button></p>
+  </div>
+</footer>
+
+</div><!-- close content-wrap -->
 
 <!-- Credits modal -->
 <div class="modal-backdrop" id="creditsBackdrop" onclick="closeCreditsOnBackdrop(event)">
@@ -514,6 +605,12 @@ function goPlay() {
   document.getElementById('screenWelcome').classList.remove('active');
   document.getElementById('screenPlay').classList.add('active');
   spin();
+}
+
+function goHome() {
+  stopSound();
+  document.getElementById('screenPlay').classList.remove('active');
+  document.getElementById('screenWelcome').classList.add('active');
 }
 
 function spin() {
