@@ -1,12 +1,10 @@
-FROM alpine:latest AS build-date
-RUN apk add --no-cache git
-COPY .git /app/.git
-WORKDIR /app
-RUN git log -1 --format='%ad' --date=format:'%B %d, %Y' > /tmp/build-date.txt
-
 FROM nginx:alpine
+ARG BUILD_DATE=""
 COPY . /usr/share/nginx/html
-COPY --from=build-date /tmp/build-date.txt /tmp/build-date.txt
-RUN sed -i "s/__BUILD_DATE__/$(cat /tmp/build-date.txt)/" /usr/share/nginx/html/index.html && rm /tmp/build-date.txt
+RUN if [ -n "$BUILD_DATE" ]; then \
+      sed -i "s/__BUILD_DATE__/$BUILD_DATE/" /usr/share/nginx/html/index.html; \
+    else \
+      sed -i "s/__BUILD_DATE__/$(date +'%B %d, %Y')/" /usr/share/nginx/html/index.html; \
+    fi
 EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD wget -qO- http://127.0.0.1/ || exit 1
